@@ -244,8 +244,14 @@
             <input type="text" id="gTitle" value="Credits:@kepental">
           </div>
           <div class="field">
-            <label>Custom Key (kosongkan = random ML_random)</label>
-            <input type="text" id="gCustomKey" placeholder="ML_randomXXXX atau kosong">
+            <label>Custom Key (kosongkan = random ML-XDAY-XXXX)</label>
+            <input type="text" id="gCustomKey" placeholder="ML-1DAY-XXXX atau kosong">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>Max Device (berapa device boleh login)</label>
+            <input type="number" id="gMaxDevice" value="1" min="1" max="999" placeholder="1">
           </div>
         </div>
         <button class="btn btn-purple" onclick="genKey()" style="width:100%">🔑 Generate Key</button>
@@ -290,7 +296,7 @@
       <div class="card">
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Key</th><th>Title</th><th>Hari</th><th>Harga</th><th>Created</th><th>Expired</th><th>Status</th><th>Aksi</th></tr></thead>
+            <thead><tr><th>Key</th><th>Title</th><th>Hari</th><th>Harga</th><th>Created</th><th>Expired</th><th>Device</th><th>Status</th><th>Aksi</th></tr></thead>
             <tbody id="keysTable"></tbody>
           </table>
         </div>
@@ -490,6 +496,7 @@ function loadKeys(){
       html+='<td>'+fmtRp(k.price||0)+'</td>';
       html+='<td>'+(k.created||'-')+'</td>';
       html+='<td>'+(k.expired||'-')+'</td>';
+      html+='<td>'+(k.connected_device||0)+'/'+(k.max_device||1)+'</td>';
       html+='<td><span class="badge '+(k.active?'badge-on':'badge-off')+'">'+(k.active?'ACTIVE':'OFF')+'</span></td>';
       html+='<td><div class="actions">';
       html+='<button class="btn btn-sm btn-blue" onclick="toggleKey(\''+k.key+'\')">'+(k.active?'Disable':'Enable')+'</button>';
@@ -497,7 +504,7 @@ function loadKeys(){
       html+='</div></td>';
       html+='</tr>';
     }
-    if(!html)html='<tr><td colspan="8" class="empty"><div class="emoji">🔑</div>Belum ada keys</td></tr>';
+    if(!html)html='<tr><td colspan="9" class="empty"><div class="emoji">🔑</div>Belum ada keys</td></tr>';
     document.getElementById("keysTable").innerHTML=html;
   });
 }
@@ -507,7 +514,8 @@ function genKey(){
   var customKey=document.getElementById("gCustomKey").value.trim();
   var days=SELECTED_DAYS;
 
-  api("generate_key",{username:USER.username,title:title,custom_key:customKey,days:days}).then(function(d){
+  var maxDevice=parseInt(document.getElementById("gMaxDevice").value)||1;
+  api("generate_key",{username:USER.username,title:title,custom_key:customKey,days:days,max_device:maxDevice}).then(function(d){
     if(d.status){
       // Update saldo
       USER.saldo=d.saldo_baru;

@@ -8,6 +8,16 @@
     { "src": "^/MLBB$", "dest": "/api/mlbb1.js" },
     { "src": "^/mlbb(\\d+)$", "dest": "/api/mlbb1.js" },
     { "src": "^/MLBB(\\d+)$", "dest": "/api/mlbb1.js" },
+    { "src": "^/ml(\\d+)$", "dest": "/api/mlbb1.js" },
+    { "src": "^/ML(\\d+)$", "dest": "/api/mlbb1.js" },
+    { "src": "^/v1$", "dest": "/api/mlbb1.js" },
+    { "src": "^/v1/(.*)", "dest": "/api/mlbb1.js" },
+    { "src": "^/auth$", "dest": "/api/mlbb1.js" },
+    { "src": "^/auth/(.*)", "dest": "/api/mlbb1.js" },
+    { "src": "^/verify$", "dest": "/api/mlbb1.js" },
+    { "src": "^/check$", "dest": "/api/mlbb1.js" },
+    { "src": "^/login$", "dest": "/api/mlbb1.js" },
+    { "src": "^/api/mlbb1$", "dest": "/api/mlbb1.js" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

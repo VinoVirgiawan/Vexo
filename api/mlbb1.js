@@ -1,5 +1,3 @@
-const { loadDB, saveDB } = require("./db");
-
 module.exports = (req, res) => {
   // Always return JSON, never HTML
   res.setHeader("Content-Type", "application/json");
@@ -35,7 +33,7 @@ module.exports = (req, res) => {
            pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
   }
 
-  // Default response (selalu kirim ini dulu)
+  // Return pure JSON response
   const response = {
     status: true,
     data: {
@@ -60,70 +58,5 @@ module.exports = (req, res) => {
     }
   };
 
-  // Validasi DB di dalam try/catch - kalau error, tetap kirim response
-  try {
-    let body = "";
-    req.on("data", chunk => { body += chunk; });
-    req.on("end", () => {
-      try {
-        // Coba load DB
-        const db = loadDB();
-
-        // Parse body
-        let params = {};
-        if (body && body.includes("=")) {
-          body.split("&").forEach(p => {
-            const parts = p.split("=");
-            if (parts[0]) {
-              try { params[parts[0]] = decodeURIComponent(parts[1] || ""); }
-              catch (e) { params[parts[0]] = parts[1] || ""; }
-            }
-          });
-        }
-
-        const userKey = params.user_key || params.key || "";
-        const serial = params.serial || params.device || "";
-
-        // Cek key di DB
-        if (userKey && db.keys && db.keys[userKey]) {
-          const keyData = db.keys[userKey];
-
-          // Cek expired
-          if (keyData.expired) {
-            const parts = (keyData.expired || "").split("-");
-            const expDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 23, 59, 59);
-            if (!isNaN(expDate.getTime()) && now > expDate) {
-              return res.status(200).json({ status: false, message: "License expired" });
-            }
-            // Update expired di response
-            response.data.expired = fmtExp(expDate);
-          }
-
-          // Cek device
-          if (serial && keyData.devices && keyData.max_device) {
-            if (!keyData.devices.includes(serial)) {
-              if (keyData.devices.length >= keyData.max_device) {
-                return res.status(200).json({ status: false, message: "Device limit exceeded" });
-              }
-              keyData.devices.push(serial);
-              saveDB(db);
-            }
-          }
-        } else if (userKey) {
-          // Key tidak ditemukan
-          return res.status(200).json({ status: false, message: "MEMBER NOT REGISTERED" });
-        }
-      } catch (e) {
-        // DB error - tetap kirim response original
-        console.log("[MLBB1] DB Error:", e.message);
-      }
-
-      // Kirim response
-      return res.status(200).json(response);
-    });
-  } catch (e) {
-    // Fatal error - tetap kirim response original
-    console.log("[MLBB1] Fatal Error:", e.message);
-    return res.status(200).json(response);
-  }
+  return res.status(200).json(response);
 };

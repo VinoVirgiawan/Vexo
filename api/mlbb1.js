@@ -1,12 +1,16 @@
 const { loadDB, saveDB } = require("./db");
 
 module.exports = (req, res) => {
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  // Always return JSON, never HTML
+  res.setHeader("Content-Type", "application/json");
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") return res.status(200).end();
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
 
   let body = "";
   req.on("data", chunk => { body += chunk; });
@@ -83,7 +87,7 @@ module.exports = (req, res) => {
       }
     }
 
-    // 7. LICENSE VALID → kirim response
+    // 7. LICENSE VALID → response PERSIS seperti original
     const hex = "0123456789abcdef";
     let token = "";
     for (let i = 0; i < 32; i++) {
@@ -92,7 +96,7 @@ module.exports = (req, res) => {
     const rng = Math.floor(Math.random() * 2000000000) + 1000000000;
 
     function pad(n) { return String(n).padStart(2, "0"); }
-    function fmtNow(d) {
+    function fmtDate(d) {
       const m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
       return pad(d.getDate()) + "-" + m[d.getMonth()] + "-" + d.getFullYear() + " " +
         pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
@@ -102,15 +106,14 @@ module.exports = (req, res) => {
         pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
     }
 
-    // Response dengan message + data
-    return res.status(200).json({
+    const response = {
       status: true,
-      message: "Auth success",
       data: {
-        Datte: fmtNow(now),
+        Datte: fmtDate(now),
         token: token,
         rng: rng,
-        tittle: keyData.title || "Credits:@kepental",
+        key: "Credits:@kepental",
+        tittle: "Credits:@kepental",
         versi: "1.1",
         instance: "Instance",
         expired: fmtExp(expDate)
@@ -118,10 +121,15 @@ module.exports = (req, res) => {
       features: {
         esp_line: true,
         esp_box: true,
+        esp_name: true,
+        esp_health: true,
+        esp_distance: true,
         ATTIC_V35: true,
         ATTIC_V36: true,
         ATTIC_V37: true
       }
-    });
+    };
+
+    return res.status(200).json(response);
   });
 };

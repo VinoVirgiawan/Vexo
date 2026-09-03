@@ -1,7 +1,9 @@
 {
   "version": 2,
+  "name": "vercel-vexo",
   "routes": [
+    { "src": "/api/admin(.*)", "dest": "/api/admin.js" },
     { "src": "/mlbb1", "dest": "/api/mlbb1.js" },
-    { "src": "/(.*)", "dest": "/api/mlbb1.js" }
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

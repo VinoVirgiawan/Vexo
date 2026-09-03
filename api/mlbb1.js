@@ -6,16 +6,14 @@ module.exports = (req, res) => {
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
 
   let body = "";
   req.on("data", chunk => { body += chunk; });
   req.on("end", () => {
     const db = loadDB();
 
-    // 1. INVALID PARAMETER - body kosong
+    // === VALIDASI 1: BODY KOSONG ===
     if (!body || body.trim() === "") {
       return res.status(200).json({
         status: false,
@@ -40,7 +38,9 @@ module.exports = (req, res) => {
     }
 
     const userKey = params.user_key || params.key || "";
+    const serial = params.serial || params.device || "";
 
+    // === VALIDASI 2: KEY KOSONG ===
     if (!userKey || userKey.trim() === "") {
       return res.status(200).json({
         status: false,
@@ -49,7 +49,7 @@ module.exports = (req, res) => {
       });
     }
 
-    // 2. KEY NOT FOUND
+    // === VALIDASI 3: KEY TIDAK TERDAFTAR ===
     if (!db.keys[userKey]) {
       return res.status(200).json({
         status: false,
@@ -60,25 +60,22 @@ module.exports = (req, res) => {
 
     const keyData = db.keys[userKey];
 
-    // 3. KEY INACTIVE
+    // === VALIDASI 4: KEY NONAKTIF ===
     if (!keyData.active) {
       return res.status(200).json({
         status: false,
-        message: "Key is disabled",
-        error: "KEY_DISABLED"
+        message: "License disabled",
+        error: "LICENSE_DISABLED"
       });
     }
 
-    // 4. KEY EXPIRED
+    // === VALIDASI 5: LICENSE EXPIRED ===
     const now = new Date();
     let expDate;
     try {
-      expDate = new Date(keyData.expired + "T23:59:59");
-      if (isNaN(expDate.getTime())) {
-        // Fallback: try parsing YYYY-MM-DD
-        const parts = keyData.expired.split("-");
-        expDate = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]), 23, 59, 59);
-      }
+      const parts = (keyData.expired || "").split("-");
+      expDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 23, 59, 59);
+      if (isNaN(expDate.getTime())) expDate = new Date("2099-12-31T23:59:59");
     } catch (e) {
       expDate = new Date("2099-12-31T23:59:59");
     }
@@ -86,32 +83,37 @@ module.exports = (req, res) => {
     if (now > expDate) {
       return res.status(200).json({
         status: false,
-        message: "Key expired",
-        error: "KEY_EXPIRED",
+        message: "License expired",
+        error: "LICENSE_EXPIRED",
         expired: keyData.expired
       });
     }
 
-    // 5. KEY FULL DEVICE
-    const maxDevices = keyData.max_device || 1;
-    const serial = params.serial || params.device || "";
-
+    // === VALIDASI 6: DEVICE LIMIT ===
+    const maxDevice = keyData.max_device || 999;
     if (!keyData.devices) keyData.devices = [];
-    if (serial && !keyData.devices.includes(serial)) {
-      if (keyData.devices.length >= maxDevices) {
-        return res.status(200).json({
-          status: false,
-          message: "Key Full Device",
-          error: "MAX_DEVICE_REACHED",
-          connected: keyData.devices.length,
-          max_device: maxDevices
-        });
+
+    if (serial) {
+      const deviceExists = keyData.devices.includes(serial);
+
+      if (!deviceExists) {
+        // Device baru - cek limit
+        if (keyData.devices.length >= maxDevice) {
+          return res.status(200).json({
+            status: false,
+            message: "Device limit exceeded",
+            error: "MAX_DEVICE_REACHED",
+            connected: keyData.devices.length,
+            max_device: maxDevice
+          });
+        }
+        // Tambah device baru
+        keyData.devices.push(serial);
+        saveDB(db);
       }
-      keyData.devices.push(serial);
-      saveDB(db);
     }
 
-    // 6. AUTH SUCCESS
+    // === LICENSE VALID - RETURN RESPONSE ===
     const hex = "0123456789abcdef";
     let token = "";
     for (let i = 0; i < 32; i++) {
@@ -130,19 +132,24 @@ module.exports = (req, res) => {
         pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
     }
 
+    // Sisa hari
+    const sisaHari = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
+
     return res.status(200).json({
       status: true,
+      message: "License valid",
       data: {
         Datte: fmtNow(now),
         token: token,
         rng: rng,
-        key: "Credits:@kepental",
+        key: userKey,
         tittle: keyData.title || "Credits:@kepental",
         versi: "1.1",
         instance: "Instance",
         expired: fmtExp(expDate),
+        sisa_hari: sisaHari,
         connected_device: keyData.devices.length,
-        max_device: maxDevices
+        max_device: maxDevice
       },
       features: {
         esp_line: true,

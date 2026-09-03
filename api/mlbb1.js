@@ -1,23 +1,24 @@
-const { loadDB } = require("./db");
-
 module.exports = (req, res) => {
-  // ALWAYS return JSON - never HTML, never plain text
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  // Always return JSON, never HTML
+  res.setHeader("Content-Type", "application/json");
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
-  // Generate random auth data
+  // Generate random token
   const hex = "0123456789abcdef";
   let token = "";
   for (let i = 0; i < 32; i++) {
     token += hex[Math.floor(Math.random() * 16)];
   }
   const rng = Math.floor(Math.random() * 2000000000) + 1000000000;
+
+  // Format dates
   const now = new Date();
   const exp = new Date("2099-12-31T23:59:59");
 
@@ -25,11 +26,11 @@ module.exports = (req, res) => {
   function fmtDate(d) {
     const m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     return pad(d.getDate()) + "-" + m[d.getMonth()] + "-" + d.getFullYear() + " " +
-      pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+           pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
   }
   function fmtExp(d) {
     return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()) + " " +
-      pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+           pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
   }
 
   // Return pure JSON response
@@ -57,10 +58,5 @@ module.exports = (req, res) => {
     }
   };
 
-  try {
-    return res.status(200).json(response);
-  } catch (e) {
-    // Fallback - always return valid JSON
-    return res.status(200).end(JSON.stringify(response));
-  }
+  return res.status(200).json(response);
 };

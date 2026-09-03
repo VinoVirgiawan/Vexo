@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "routes": [
+    { "src": "/mlbb1", "dest": "/api/mlbb1.js" },
+    { "src": "/(.*)", "dest": "/api/mlbb1.js" }
+  ]
+}

@@ -1,4 +1,16 @@
 const { loadDB, saveDB, genRandomKey, fmtDate, fmtDateTime } = require("./db");
+const fs = require("fs");
+const path = require("path");
+const CONFIG_FILE = path.join(__dirname, "config.json");
+
+function loadConfig() {
+  try { return JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8")); }
+  catch (e) { return { max_device: 999 }; }
+}
+function saveConfig(cfg) {
+  try { fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2)); }
+  catch (e) {}
+}
 
 module.exports = (req, res) => {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -185,6 +197,19 @@ module.exports = (req, res) => {
         status: true, key, active: db.keys[key].active,
         message: db.keys[key].active ? "Key activated" : "Key deactivated"
       });
+    }
+
+    // GET CONFIG
+    if (action === "get_config") {
+      return res.status(200).json({ status: true, config: loadConfig() });
+    }
+
+    // UPDATE CONFIG
+    if (action === "update_config") {
+      const cfg = loadConfig();
+      if (params.max_device !== undefined) cfg.max_device = parseInt(params.max_device) || 999;
+      saveConfig(cfg);
+      return res.status(200).json({ status: true, config: cfg, message: "Config updated!" });
     }
 
     // STATS

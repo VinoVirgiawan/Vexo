@@ -13,13 +13,9 @@ module.exports = (req, res) => {
   req.on("end", () => {
     const db = loadDB();
 
-    // === VALIDASI 1: BODY KOSONG ===
+    // 1. BODY KOSONG
     if (!body || body.trim() === "") {
-      return res.status(200).json({
-        status: false,
-        message: "Invalid parameter",
-        error: "EMPTY_BODY"
-      });
+      return res.status(200).json({ status: false, message: "Invalid parameter" });
     }
 
     // Parse body
@@ -40,36 +36,24 @@ module.exports = (req, res) => {
     const userKey = params.user_key || params.key || "";
     const serial = params.serial || params.device || "";
 
-    // === VALIDASI 2: KEY KOSONG ===
+    // 2. KEY KOSONG
     if (!userKey || userKey.trim() === "") {
-      return res.status(200).json({
-        status: false,
-        message: "Invalid parameter",
-        error: "MISSING_USER_KEY"
-      });
+      return res.status(200).json({ status: false, message: "Invalid parameter" });
     }
 
-    // === VALIDASI 3: KEY TIDAK TERDAFTAR ===
+    // 3. KEY TIDAK TERDAFTAR
     if (!db.keys[userKey]) {
-      return res.status(200).json({
-        status: false,
-        message: "MEMBER NOT REGISTERED",
-        error: "KEY_NOT_FOUND"
-      });
+      return res.status(200).json({ status: false, message: "MEMBER NOT REGISTERED" });
     }
 
     const keyData = db.keys[userKey];
 
-    // === VALIDASI 4: KEY NONAKTIF ===
+    // 4. KEY NONAKTIF
     if (!keyData.active) {
-      return res.status(200).json({
-        status: false,
-        message: "License disabled",
-        error: "LICENSE_DISABLED"
-      });
+      return res.status(200).json({ status: false, message: "License disabled" });
     }
 
-    // === VALIDASI 5: LICENSE EXPIRED ===
+    // 5. LICENSE EXPIRED
     const now = new Date();
     let expDate;
     try {
@@ -81,39 +65,32 @@ module.exports = (req, res) => {
     }
 
     if (now > expDate) {
-      return res.status(200).json({
-        status: false,
-        message: "License expired",
-        error: "LICENSE_EXPIRED",
-        expired: keyData.expired
-      });
+      return res.status(200).json({ status: false, message: "License expired" });
     }
 
-    // === VALIDASI 6: DEVICE LIMIT ===
-    const maxDevice = keyData.max_device || 999;
+    // 6. DEVICE CHECK (per key, dari admin panel)
+    // - Serial sama → OK (ga nambah)
+    // - Serial baru & belum full → tambah, OK
+    // - Serial baru & full → Device limit exceeded
+    const maxDevice = keyData.max_device || 1;
     if (!keyData.devices) keyData.devices = [];
 
     if (serial) {
       const deviceExists = keyData.devices.includes(serial);
 
       if (!deviceExists) {
-        // Device baru - cek limit
+        // Serial baru - cek limit
         if (keyData.devices.length >= maxDevice) {
-          return res.status(200).json({
-            status: false,
-            message: "Device limit exceeded",
-            error: "MAX_DEVICE_REACHED",
-            connected: keyData.devices.length,
-            max_device: maxDevice
-          });
+          return res.status(200).json({ status: false, message: "Device limit exceeded" });
         }
         // Tambah device baru
         keyData.devices.push(serial);
         saveDB(db);
       }
+      // Serial sama → skip
     }
 
-    // === LICENSE VALID - RETURN RESPONSE ===
+    // 7. LICENSE VALID → kirim JSON
     const hex = "0123456789abcdef";
     let token = "";
     for (let i = 0; i < 32; i++) {
@@ -132,12 +109,8 @@ module.exports = (req, res) => {
         pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
     }
 
-    // Sisa hari
-    const sisaHari = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
-
     return res.status(200).json({
       status: true,
-      message: "License valid",
       data: {
         Datte: fmtNow(now),
         token: token,
@@ -146,10 +119,7 @@ module.exports = (req, res) => {
         tittle: keyData.title || "Credits:@kepental",
         versi: "1.1",
         instance: "Instance",
-        expired: fmtExp(expDate),
-        sisa_hari: sisaHari,
-        connected_device: keyData.devices.length,
-        max_device: maxDevice
+        expired: fmtExp(expDate)
       },
       features: {
         esp_line: true,

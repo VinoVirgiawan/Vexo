@@ -1,7 +1,7 @@
 const { loadDB } = require("./db");
 
 module.exports = (req, res) => {
-  // ALWAYS return JSON - never HTML
+  // ALWAYS return JSON - never HTML, never plain text
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -11,6 +11,7 @@ module.exports = (req, res) => {
     return res.status(200).end();
   }
 
+  // Generate random auth data
   const hex = "0123456789abcdef";
   let token = "";
   for (let i = 0; i < 32; i++) {
@@ -31,7 +32,7 @@ module.exports = (req, res) => {
       pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
   }
 
-  // Return pure JSON response - ALWAYS valid JSON
+  // Return pure JSON response
   const response = {
     status: true,
     data: {
@@ -59,7 +60,7 @@ module.exports = (req, res) => {
   try {
     return res.status(200).json(response);
   } catch (e) {
-    // Fallback - ensure JSON is always returned
+    // Fallback - always return valid JSON
     return res.status(200).end(JSON.stringify(response));
   }
 };

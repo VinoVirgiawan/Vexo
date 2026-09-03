@@ -5,7 +5,11 @@ const DB_FILE = path.join("/tmp", "vexo_db.json");
 
 const DEFAULT_DB = {
   users: {
-    pinok: { password: "pinok", role: "admin", saldo: 0 }
+    pinok: {
+      password: "pinok",
+      role: "admin",
+      saldo: 999999
+    }
   },
   keys: {},
   prices: {
@@ -19,7 +23,11 @@ const DEFAULT_DB = {
 function loadDB() {
   try {
     if (fs.existsSync(DB_FILE)) {
-      return JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+      const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+      if (!data.users) data.users = DEFAULT_DB.users;
+      if (!data.keys) data.keys = {};
+      if (!data.prices) data.prices = DEFAULT_DB.prices;
+      return data;
     }
   } catch (e) {}
   return JSON.parse(JSON.stringify(DEFAULT_DB));
@@ -40,20 +48,22 @@ function genRandomKey() {
   return key;
 }
 
-function formatDate(d) {
-  return d.getFullYear() + "-" +
-    String(d.getMonth() + 1).padStart(2, "0") + "-" +
-    String(d.getDate()).padStart(2, "0");
-}
-
-function formatDateTime(d) {
+function fmtDate(d) {
   function p(n) { return String(n).padStart(2, "0"); }
-  return d.getFullYear() + "-" +
-    p(d.getMonth() + 1) + "-" +
-    p(d.getDate()) + " " +
-    p(d.getHours()) + ":" +
-    p(d.getMinutes()) + ":" +
-    p(d.getSeconds());
+  const m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return p(d.getDate()) + "-" + m[d.getMonth()] + "-" + d.getFullYear();
 }
 
-module.exports = { loadDB, saveDB, genRandomKey, formatDate, formatDateTime, DEFAULT_DB };
+function fmtDateTime(d) {
+  function p(n) { return String(n).padStart(2, "0"); }
+  return d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate()) + " " +
+    p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+}
+
+function fmtExp(d) {
+  function p(n) { return String(n).padStart(2, "0"); }
+  return d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate()) + " " +
+    p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+}
+
+module.exports = { loadDB, saveDB, genRandomKey, fmtDate, fmtDateTime, fmtExp, DEFAULT_DB };

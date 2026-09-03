@@ -1,4 +1,4 @@
-const { loadDB, saveDB, genRandomKey, formatDate, formatDateTime } = require("./db");
+const { loadDB, saveDB, genRandomKey, fmtDate, fmtDateTime, fmtExp } = require("./db");
 
 module.exports = (req, res) => {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -11,17 +11,34 @@ module.exports = (req, res) => {
   let body = "";
   req.on("data", chunk => { body += chunk; });
   req.on("end", () => {
-    const url = new URL(req.url, "http://localhost");
-    const action = url.searchParams.get("action") || "";
-
-    let params = {};
+    // Parse URL and action
+    let action = "";
     try {
-      params = JSON.parse(body);
+      const urlObj = new URL(req.url, "http://localhost");
+      action = urlObj.searchParams.get("action") || "";
     } catch (e) {
-      body.split("&").forEach(p => {
-        const [k, v] = p.split("=");
-        if (k) params[k] = decodeURIComponent(v || "");
-      });
+      // fallback: extract from raw url
+      const match = req.url.match(/action=([^&]+)/);
+      if (match) action = match[1];
+    }
+
+    // Parse body as JSON or URL-encoded
+    let params = {};
+    if (body) {
+      try {
+        params = JSON.parse(body);
+      } catch (e) {
+        body.split("&").forEach(p => {
+          const parts = p.split("=");
+          if (parts[0]) {
+            try {
+              params[parts[0]] = decodeURIComponent(parts[1] || "");
+            } catch (e2) {
+              params[parts[0]] = parts[1] || "";
+            }
+          }
+        });
+      }
     }
 
     const db = loadDB();
@@ -34,15 +51,39 @@ module.exports = (req, res) => {
           status: true,
           message: "Login success",
           username: params.username,
-          role: user.role
+          role: user.role,
+          saldo: user.saldo || 0
         });
       }
       return res.status(200).json({ status: false, message: "Wrong credentials" });
     }
 
+    // === GET PROFILE ===
+    if (action === "get_profile") {
+      const user = db.users[params.username];
+      if (!user) return res.status(200).json({ status: false });
+      return res.status(200).json({
+        status: true,
+        username: params.username,
+        role: user.role,
+        saldo: user.saldo || 0
+      });
+    }
+
     // === GET PRICES ===
     if (action === "get_prices") {
       return res.status(200).json({ status: true, prices: db.prices });
+    }
+
+    // === TOPUP ===
+    if (action === "topup") {
+      const user = db.users[params.username];
+      if (!user) return res.status(200).json({ status: false, message: "User not found" });
+      const amount = parseInt(params.amount) || 0;
+      if (amount <= 0) return res.status(200).json({ status: false, message: "Invalid amount" });
+      user.saldo = (user.saldo || 0) + amount;
+      saveDB(db);
+      return res.status(200).json({ status: true, saldo_baru: user.saldo, message: "Topup berhasil!" });
     }
 
     // === LIST KEYS ===
@@ -54,10 +95,9 @@ module.exports = (req, res) => {
         return {
           key,
           title: val.title,
-          custom_key: val.custom_key || "",
-          device: val.device,
+          device: val.device || "default",
           days: val.days,
-          price: val.price,
+          price: val.price || 0,
           created: val.created,
           expired: val.expired,
           active,
@@ -69,16 +109,36 @@ module.exports = (req, res) => {
 
     // === GENERATE KEY ===
     if (action === "generate_key") {
+      const user = db.users[params.username];
+      if (!user) return res.status(200).json({ status: false, message: "User not found" });
+
       const title = params.title || "Credits:@kepental";
       const days = parseInt(params.days) || 1;
-      const price = db.prices[days] || (days * 6500);
-      const customKey = params.custom_key || "";
+      const customKey = (params.custom_key || "").trim();
 
+      // Check saldo
+      const price = db.prices[days] || (days * 6500);
+      if ((user.saldo || 0) < price) {
+        return res.status(200).json({
+          status: false,
+          message: "Saldo tidak cukup! Harga: Rp " + price.toLocaleString("id-ID") + ", Saldo: Rp " + (user.saldo || 0).toLocaleString("id-ID")
+        });
+      }
+
+      // Generate or use custom key
       let newKey;
       if (customKey) {
+        // Check if custom key already exists
+        if (db.keys[customKey]) {
+          return res.status(200).json({ status: false, message: "Key sudah ada!" });
+        }
         newKey = customKey;
       } else {
         newKey = genRandomKey();
+        // Make sure key is unique
+        while (db.keys[newKey]) {
+          newKey = genRandomKey();
+        }
       }
 
       const now = new Date();
@@ -88,20 +148,31 @@ module.exports = (req, res) => {
         title,
         active: true,
         device: "default",
-        custom_key: customKey,
-        created: formatDateTime(now),
-        expired: formatDate(exp),
+        created: fmtDateTime(now),
+        expired: fmtDate(exp),
         days,
         price,
-        owner: "pinok"
+        owner: params.username
       };
 
+      // Deduct saldo
+      user.saldo = (user.saldo || 0) - price;
       saveDB(db);
 
+      // Return with struk data
       return res.status(200).json({
         status: true,
         key: newKey,
         data: db.keys[newKey],
+        saldo_baru: user.saldo,
+        struk: {
+          key: newKey,
+          title: title,
+          paket: days + " Hari",
+          harga: price,
+          tanggal: fmtDateTime(now),
+          expired: fmtDate(exp)
+        },
         message: "Key generated!"
       });
     }
@@ -109,28 +180,41 @@ module.exports = (req, res) => {
     // === DELETE KEY ===
     if (action === "delete_key") {
       const key = params.key || "";
-      if (db.keys[key]) {
-        delete db.keys[key];
-        saveDB(db);
-        return res.status(200).json({ status: true, message: "Key deleted!" });
+      if (!db.keys[key]) {
+        return res.status(200).json({ status: false, message: "Key not found" });
       }
-      return res.status(200).json({ status: false, message: "Key not found" });
+
+      const keyData = db.keys[key];
+      const refund = Math.floor((keyData.price || 0) * 0.5);
+
+      // Refund to owner
+      if (keyData.owner && db.users[keyData.owner]) {
+        db.users[keyData.owner].saldo = (db.users[keyData.owner].saldo || 0) + refund;
+      }
+
+      delete db.keys[key];
+      saveDB(db);
+
+      return res.status(200).json({
+        status: true,
+        message: "Key deleted! Refund: Rp " + refund.toLocaleString("id-ID")
+      });
     }
 
     // === TOGGLE KEY ===
     if (action === "toggle_key") {
       const key = params.key || "";
-      if (db.keys[key]) {
-        db.keys[key].active = !db.keys[key].active;
-        saveDB(db);
-        return res.status(200).json({
-          status: true,
-          key: key,
-          active: db.keys[key].active,
-          message: db.keys[key].active ? "Key activated" : "Key deactivated"
-        });
+      if (!db.keys[key]) {
+        return res.status(200).json({ status: false, message: "Key not found" });
       }
-      return res.status(200).json({ status: false, message: "Key not found" });
+      db.keys[key].active = !db.keys[key].active;
+      saveDB(db);
+      return res.status(200).json({
+        status: true,
+        key: key,
+        active: db.keys[key].active,
+        message: db.keys[key].active ? "Key activated" : "Key deactivated"
+      });
     }
 
     // === STATS ===
@@ -142,16 +226,15 @@ module.exports = (req, res) => {
         const exp = new Date(k.expired + "T23:59:59");
         return k.active && now <= exp;
       }).length;
-      const inactive = total - active;
 
       return res.status(200).json({
         status: true,
         total,
         active,
-        inactive
+        inactive: total - active
       });
     }
 
-    return res.status(200).json({ status: false, message: "Unknown action: " + action });
+    return res.status(200).json({ status: false, message: "Unknown action" });
   });
 };

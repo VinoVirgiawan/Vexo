@@ -18,7 +18,7 @@ module.exports = (req, res) => {
       return res.status(200).json({ status: false, message: "Invalid parameter" });
     }
 
-    // Parse body
+    // Parse body (URL-encoded)
     let params = {};
     if (body.includes("=")) {
       body.split("&").forEach(p => {
@@ -68,29 +68,22 @@ module.exports = (req, res) => {
       return res.status(200).json({ status: false, message: "License expired" });
     }
 
-    // 6. DEVICE CHECK (per key, dari admin panel)
-    // - Serial sama → OK (ga nambah)
-    // - Serial baru & belum full → tambah, OK
-    // - Serial baru & full → Device limit exceeded
+    // 6. DEVICE CHECK
     const maxDevice = keyData.max_device || 1;
     if (!keyData.devices) keyData.devices = [];
 
     if (serial) {
       const deviceExists = keyData.devices.includes(serial);
-
       if (!deviceExists) {
-        // Serial baru - cek limit
         if (keyData.devices.length >= maxDevice) {
           return res.status(200).json({ status: false, message: "Device limit exceeded" });
         }
-        // Tambah device baru
         keyData.devices.push(serial);
         saveDB(db);
       }
-      // Serial sama → skip
     }
 
-    // 7. LICENSE VALID → kirim JSON
+    // 7. LICENSE VALID → kirim response
     const hex = "0123456789abcdef";
     let token = "";
     for (let i = 0; i < 32; i++) {
@@ -109,13 +102,14 @@ module.exports = (req, res) => {
         pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
     }
 
+    // Response dengan message + data
     return res.status(200).json({
       status: true,
+      message: "Auth success",
       data: {
         Datte: fmtNow(now),
         token: token,
         rng: rng,
-        key: userKey,
         tittle: keyData.title || "Credits:@kepental",
         versi: "1.1",
         instance: "Instance",
@@ -124,9 +118,6 @@ module.exports = (req, res) => {
       features: {
         esp_line: true,
         esp_box: true,
-        esp_name: true,
-        esp_health: true,
-        esp_distance: true,
         ATTIC_V35: true,
         ATTIC_V36: true,
         ATTIC_V37: true

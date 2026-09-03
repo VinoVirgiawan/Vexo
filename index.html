@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VexoriaHax - Admin Panel</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#0a0a0f;--bg2:#12121a;--bg3:#1a1a26;--bg4:#22222e;
+      --border:#2a2a3a;--border2:#3a3a4e;
+      --purple:#8b5cf6;--purple2:#7c3aed;--purple3:#6d28d9;
+      --green:#22c55e;--green2:#16a34a;
+      --red:#ef4444;--red2:#dc2626;
+      --yellow:#eab308;--blue:#3b82f6;--cyan:#06b6d4;
+      --text:#f0f0f5;--text2:#a0a0b8;--text3:#6a6a82
+    }
+    body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh}
+
+    /* LOGIN */
+    .login-wrap{display:flex;justify-content:center;align-items:center;min-height:100vh;
+      background:radial-gradient(ellipse at 20% 50%,rgba(139,92,246,0.08) 0%,transparent 50%),
+      radial-gradient(ellipse at 80% 20%,rgba(6,182,212,0.06) 0%,transparent 50%),var(--bg)}
+    .login-card{width:420px;background:var(--bg2);border:1px solid var(--border);border-radius:24px;padding:56px 48px;text-align:center;
+      box-shadow:0 0 0 1px rgba(139,92,246,0.05),0 25px 60px rgba(0,0,0,0.5)}
+    .login-logo{width:72px;height:72px;border-radius:20px;margin:0 auto 24px;
+      background:linear-gradient(135deg,var(--purple),var(--cyan));
+      display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:900;color:#fff;
+      box-shadow:0 8px 32px rgba(139,92,246,0.3)}
+    .login-card h1{font-size:28px;font-weight:900;margin-bottom:4px;
+      background:linear-gradient(135deg,#fff 30%,var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .login-card .sub{color:var(--text3);font-size:13px;margin-bottom:36px;font-weight:500}
+    .input-group{margin-bottom:16px;text-align:left}
+    .input-group label{display:block;font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+    .input-group input{width:100%;padding:16px 18px;background:var(--bg);border:1px solid var(--border);border-radius:12px;
+      color:#fff;font-size:14px;font-family:'Inter',sans-serif;font-weight:500;outline:none;transition:all 0.2s}
+    .input-group input:focus{border-color:var(--purple);box-shadow:0 0 0 4px rgba(139,92,246,0.1)}
+    .input-group input::placeholder{color:var(--text3)}
+    .btn-login{width:100%;padding:16px;background:linear-gradient(135deg,var(--purple),var(--purple3));border:none;border-radius:12px;
+      color:#fff;font-size:14px;font-weight:800;cursor:pointer;margin-top:12px;transition:all 0.2s;text-transform:uppercase;letter-spacing:1px;font-family:'Inter',sans-serif}
+    .btn-login:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(139,92,246,0.4)}
+    .login-err{color:var(--red);font-size:12px;font-weight:600;margin-top:16px;display:none;
+      padding:10px;background:rgba(239,68,68,0.08);border-radius:8px;border:1px solid rgba(239,68,68,0.2)}
+
+    /* DASHBOARD */
+    .dash{display:none}
+    .sidebar{position:fixed;left:0;top:0;bottom:0;width:260px;background:var(--bg2);border-right:1px solid var(--border);padding:24px 0;z-index:100;display:flex;flex-direction:column}
+    .sidebar-logo{display:flex;align-items:center;gap:14px;padding:0 24px;margin-bottom:32px}
+    .sidebar-logo .icon{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff}
+    .sidebar-logo .name{font-size:18px;font-weight:800}
+    .sidebar-logo .ver{font-size:10px;color:var(--text3);font-weight:600}
+    .sidebar-nav{flex:1;padding:0 12px}
+    .nav-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;color:var(--text3);cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s;margin-bottom:4px;border:none;background:none;width:100%;text-align:left;font-family:'Inter',sans-serif}
+    .nav-item:hover{background:var(--bg3);color:var(--text)}
+    .nav-item.active{background:rgba(139,92,246,0.12);color:var(--purple)}
+    .nav-item .emoji{font-size:18px;width:24px;text-align:center}
+    .sidebar-footer{padding:16px 24px;border-top:1px solid var(--border)}
+    .sidebar-footer .user{display:flex;align-items:center;gap:10px}
+    .sidebar-footer .avatar{width:36px;height:36px;border-radius:10px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--purple)}
+    .sidebar-footer .uname{font-size:13px;font-weight:700}
+    .sidebar-footer .urole{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase}
+    .btn-logout{margin-top:12px;width:100%;padding:10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;color:var(--red);font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:'Inter',sans-serif}
+    .btn-logout:hover{background:var(--red);color:#fff}
+
+    .main-content{margin-left:260px;padding:32px;min-height:100vh}
+    .page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
+    .page-header h2{font-size:24px;font-weight:800}
+    .page-header .breadcrumb{font-size:12px;color:var(--text3);font-weight:500}
+
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
+    .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;transition:all 0.2s}
+    .stat-card:hover{border-color:var(--purple);transform:translateY(-2px)}
+    .stat-card .label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+    .stat-card .value{font-size:32px;font-weight:900;font-family:'JetBrains Mono',monospace}
+    .stat-card.purple .value{color:var(--purple)}
+    .stat-card.green .value{color:var(--green)}
+    .stat-card.red .value{color:var(--red)}
+    .stat-card.yellow .value{color:var(--yellow)}
+    .stat-card.blue .value{color:var(--blue)}
+
+    .card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:20px}
+    .card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+    .card-head h3{font-size:16px;font-weight:800}
+    .card-head .tag{font-size:11px;padding:6px 12px;border-radius:8px;background:rgba(139,92,246,0.1);color:var(--purple);font-weight:700}
+
+    .form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:16px}
+    .field label{display:block;font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+    .field input,.field select{width:100%;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:#fff;font-size:13px;font-family:'Inter',sans-serif;font-weight:500;outline:none;transition:all 0.2s}
+    .field input:focus,.field select:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(139,92,246,0.1)}
+    .field select option{background:var(--bg)}
+
+    .btn{padding:12px 24px;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.15s;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:8px}
+    .btn:active{transform:scale(0.98)}
+    .btn-purple{background:linear-gradient(135deg,var(--purple),var(--purple3))}
+    .btn-purple:hover{box-shadow:0 6px 20px rgba(139,92,246,0.3)}
+    .btn-green{background:linear-gradient(135deg,var(--green),var(--green2))}
+    .btn-green:hover{box-shadow:0 6px 20px rgba(34,197,94,0.3)}
+    .btn-red{background:rgba(239,68,68,0.12);color:var(--red);border:1px solid rgba(239,68,68,0.25)}
+    .btn-red:hover{background:var(--red);color:#fff}
+    .btn-blue{background:rgba(59,130,246,0.12);color:var(--blue);border:1px solid rgba(59,130,246,0.25)}
+    .btn-blue:hover{background:var(--blue);color:#fff}
+    .btn-sm{padding:8px 14px;font-size:11px;border-radius:8px}
+
+    .table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:14px 18px;text-align:left;font-size:13px;white-space:nowrap}
+    th{background:var(--bg3);color:var(--text3);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border)}
+    td{color:var(--text2);border-bottom:1px solid rgba(42,42,58,0.5)}
+    tr:hover td{background:rgba(255,255,255,0.015)}
+    .mono{font-family:'JetBrains Mono',monospace;color:var(--purple);font-weight:600}
+    .badge{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;display:inline-block}
+    .badge-on{background:rgba(34,197,94,0.12);color:var(--green)}
+    .badge-off{background:rgba(239,68,68,0.12);color:var(--red)}
+    .actions{display:flex;gap:6px}
+
+    .price-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+    .price-card{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s}
+    .price-card:hover{border-color:var(--purple);transform:translateY(-2px)}
+    .price-card.selected{border-color:var(--purple);background:rgba(139,92,246,0.06);box-shadow:0 0 0 2px rgba(139,92,246,0.2)}
+    .price-card .days{font-size:36px;font-weight:900;color:var(--purple);font-family:'JetBrains Mono',monospace}
+    .price-card .days-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase}
+    .price-card .price{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--yellow);margin-top:10px}
+
+    /* STRUK */
+    .struk-wrap{display:none}
+    .struk{background:var(--bg);border:2px dashed var(--border2);border-radius:16px;padding:32px;max-width:420px;margin:20px auto;font-family:'JetBrains Mono',monospace}
+    .struk-header{text-align:center;margin-bottom:20px;padding-bottom:16px;border-bottom:2px dashed var(--border2)}
+    .struk-header .logo{font-size:20px;font-weight:900;color:var(--purple)}
+    .struk-header .addr{font-size:10px;color:var(--text3);margin-top:4px}
+    .struk-row{display:flex;justify-content:space-between;padding:8px 0;font-size:12px;color:var(--text2)}
+    .struk-row .val{color:var(--text);font-weight:600}
+    .struk-divider{border:none;border-top:1px dashed var(--border2);margin:12px 0}
+    .struk-total{display:flex;justify-content:space-between;padding:12px 0;font-size:16px;font-weight:900;color:var(--green);border-top:2px dashed var(--border2);margin-top:12px}
+    .struk-footer{text-align:center;margin-top:16px;padding-top:16px;border-top:2px dashed var(--border2);font-size:10px;color:var(--text3)}
+
+    .key-result{background:var(--bg);border:2px solid var(--purple);border-radius:14px;padding:24px;text-align:center;margin-top:20px;display:none}
+    .key-result .label{font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:700}
+    .key-result .key-val{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:900;color:var(--purple);letter-spacing:2px;margin:10px 0;word-break:break-all}
+    .key-result .key-info{font-size:12px;color:var(--text3)}
+    .btn-copy{margin-top:12px;padding:10px 24px;background:var(--purple);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+    .btn-copy:hover{background:var(--purple3)}
+
+    .toast{position:fixed;top:24px;right:24px;z-index:999;background:var(--bg2);border:1px solid var(--green);border-radius:12px;padding:16px 24px;font-size:13px;font-weight:600;display:none;animation:slideIn 0.3s;color:var(--green);box-shadow:0 12px 40px rgba(0,0,0,0.4)}
+    @keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+    .panel{display:none}.panel.active{display:block}
+    .empty{text-align:center;padding:48px;color:var(--text3);font-size:14px}
+    .empty .emoji{font-size:48px;margin-bottom:12px}
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginPage" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">V</div>
+    <h1>VexoriaHax</h1>
+    <p class="sub">Admin Panel - Key Management</p>
+    <div class="input-group">
+      <label>Username</label>
+      <input type="text" id="username" placeholder="Username" autocomplete="off">
+    </div>
+    <div class="input-group">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="Password" autocomplete="off">
+    </div>
+    <button class="btn-login" onclick="doLogin()">MASUK</button>
+    <div id="loginErr" class="login-err">Username atau password salah</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashPage" class="dash">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon">V</div>
+      <div>
+        <div class="name">VexoriaHax</div>
+        <div class="ver">Admin Panel v2.0</div>
+      </div>
+    </div>
+    <div class="sidebar-nav">
+      <button class="nav-item active" onclick="go(this,'dashboard')"><span class="emoji">📊</span> Dashboard</button>
+      <button class="nav-item" onclick="go(this,'generate')"><span class="emoji">🔑</span> Generate Key</button>
+      <button class="nav-item" onclick="go(this,'keys')"><span class="emoji">📋</span> Semua Keys</button>
+      <button class="nav-item" onclick="go(this,'struk')"><span class="emoji">🧾</span> Struk & Harga</button>
+      <button class="nav-item" onclick="go(this,'topup')"><span class="emoji">💰</span> Topup Saldo</button>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user">
+        <div class="avatar">P</div>
+        <div>
+          <div class="uname">pinok</div>
+          <div class="urole">Administrator</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">Keluar</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+
+    <!-- DASHBOARD -->
+    <div id="p-dashboard" class="panel active">
+      <div class="page-header">
+        <div><div class="breadcrumb">Dashboard</div><h2>Overview</h2></div>
+      </div>
+      <div class="stats">
+        <div class="stat-card purple"><div class="label">Total Keys</div><div class="value" id="sTotal">0</div></div>
+        <div class="stat-card green"><div class="label">Active</div><div class="value" id="sActive">0</div></div>
+        <div class="stat-card red"><div class="label">Inactive</div><div class="value" id="sInactive">0</div></div>
+      </div>
+      <div class="stats">
+        <div class="stat-card blue"><div class="label">Saldo Anda</div><div class="value" id="sSaldo">Rp 0</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Recent Keys</h3><span class="tag">Live</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Key</th><th>Title</th><th>Hari</th><th>Expired</th><th>Status</th></tr></thead>
+            <tbody id="dashTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- GENERATE -->
+    <div id="p-generate" class="panel">
+      <div class="page-header">
+        <div><div class="breadcrumb">Key Management</div><h2>Generate Key Baru</h2></div>
+      </div>
+      <div class="stats">
+        <div class="stat-card blue"><div class="label">Saldo Anda</div><div class="value" id="gSaldo">Rp 0</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Pilih Paket</h3><span class="tag">Credits:@kepental</span></div>
+        <div class="price-grid" id="priceGrid"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Detail Key</h3></div>
+        <div class="form-row">
+          <div class="field">
+            <label>Title</label>
+            <input type="text" id="gTitle" value="Credits:@kepental">
+          </div>
+          <div class="field">
+            <label>Custom Key (kosongkan = random ML_random)</label>
+            <input type="text" id="gCustomKey" placeholder="ML_randomXXXX atau kosong">
+          </div>
+        </div>
+        <button class="btn btn-purple" onclick="genKey()" style="width:100%">🔑 Generate Key</button>
+
+        <!-- STRUK SETELAH GENERATE -->
+        <div id="genStrukWrap" class="struk-wrap">
+          <div class="struk">
+            <div class="struk-header">
+              <div class="logo">⚡ VEXORIAHAX ⚡</div>
+              <div class="addr">Credits:@kepental | ML-VEXOKEPENRAL</div>
+            </div>
+            <div class="struk-row"><span>Key</span><span class="val" id="gsKey">-</span></div>
+            <div class="struk-row"><span>Title</span><span class="val" id="gsTitle">-</span></div>
+            <div class="struk-row"><span>Paket</span><span class="val" id="gsPaket">-</span></div>
+            <div class="struk-row"><span>Harga</span><span class="val" id="gsHarga">-</span></div>
+            <hr class="struk-divider">
+            <div class="struk-row"><span>Tanggal</span><span class="val" id="gsTgl">-</span></div>
+            <div class="struk-row"><span>Expired</span><span class="val" id="gsExp">-</span></div>
+            <div class="struk-total"><span>SALDO SISA</span><span id="gsSaldo">-</span></div>
+            <div class="struk-footer">
+              Terima kasih telah menggunakan VexoriaHax<br>
+              Generated by Admin Panel
+            </div>
+          </div>
+        </div>
+
+        <div id="keyResult" class="key-result">
+          <div class="label">Key Generated</div>
+          <div class="key-val" id="keyVal"></div>
+          <div class="key-info" id="keyInfo"></div>
+          <button class="btn-copy" onclick="copyKey()">📋 Copy Key</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- KEYS -->
+    <div id="p-keys" class="panel">
+      <div class="page-header">
+        <div><div class="breadcrumb">Key Management</div><h2>Semua Keys</h2></div>
+        <button class="btn btn-purple btn-sm" onclick="loadKeys()">🔄 Refresh</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Key</th><th>Title</th><th>Hari</th><th>Harga</th><th>Created</th><th>Expired</th><th>Status</th><th>Aksi</th></tr></thead>
+            <tbody id="keysTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- STRUK & HARGA -->
+    <div id="p-struk" class="panel">
+      <div class="page-header">
+        <div><div class="breadcrumb">Pricing</div><h2>Struk & Harga</h2></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Harga Paket</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Paket</th><th>Masa Aktif</th><th>Harga</th><th>Harga/Hari</th></tr></thead>
+            <tbody>
+              <tr><td>1 Hari</td><td>1 Hari</td><td class="mono">Rp 6.500</td><td>Rp 6.500/hari</td></tr>
+              <tr><td>3 Hari</td><td>3 Hari</td><td class="mono">Rp 15.000</td><td>Rp 5.000/hari</td></tr>
+              <tr><td>7 Hari</td><td>7 Hari</td><td class="mono">Rp 35.000</td><td>Rp 5.000/hari</td></tr>
+              <tr><td>20 Hari</td><td>20 Hari</td><td class="mono">Rp 80.000</td><td>Rp 4.000/hari</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOPUP -->
+    <div id="p-topup" class="panel">
+      <div class="page-header">
+        <div><div class="breadcrumb">Saldo</div><h2>Topup Saldo</h2></div>
+      </div>
+      <div class="stats">
+        <div class="stat-card blue"><div class="label">Saldo Saat Ini</div><div class="value" id="tSaldo">Rp 0</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Topup Saldo</h3></div>
+        <div class="form-row">
+          <div class="field">
+            <label>Nominal (Rp)</label>
+            <input type="number" id="topupAmt" placeholder="10000" min="1000">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+          <button class="btn btn-sm btn-blue" onclick="document.getElementById('topupAmt').value=10000">Rp 10.000</button>
+          <button class="btn btn-sm btn-blue" onclick="document.getElementById('topupAmt').value=25000">Rp 25.000</button>
+          <button class="btn btn-sm btn-blue" onclick="document.getElementById('topupAmt').value=50000">Rp 50.000</button>
+          <button class="btn btn-sm btn-blue" onclick="document.getElementById('topupAmt').value=100000">Rp 100.000</button>
+          <button class="btn btn-sm btn-blue" onclick="document.getElementById('topupAmt').value=500000">Rp 500.000</button>
+        </div>
+        <button class="btn btn-green" onclick="doTopup()" style="width:100%">💰 Topup Sekarang</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+var USER = null;
+var PRICES = {};
+var SELECTED_DAYS = 1;
+
+function fmtRp(n){return "Rp "+Number(n).toLocaleString("id-ID")}
+function toast(msg,color){
+  var t=document.getElementById("toast");
+  t.textContent=msg;t.style.borderColor=color||"var(--green)";t.style.color=color||"var(--green)";
+  t.style.display="block";setTimeout(function(){t.style.display="none"},3000);
+}
+
+function go(el,id){
+  document.querySelectorAll(".nav-item").forEach(function(n){n.classList.remove("active")});
+  el.classList.add("active");
+  document.querySelectorAll(".panel").forEach(function(p){p.classList.remove("active")});
+  document.getElementById("p-"+id).classList.add("active");
+  if(id==="dashboard")loadDashboard();
+  if(id==="keys")loadKeys();
+  if(id==="generate"){loadPrices();refreshSaldo();}
+  if(id==="topup")refreshSaldo();
+}
+
+function api(action,data){
+  return fetch("/api/admin?action="+action,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(data)
+  }).then(function(r){return r.json()});
+}
+
+function doLogin(){
+  var u=document.getElementById("username").value.trim();
+  var p=document.getElementById("password").value.trim();
+  if(!u||!p){document.getElementById("loginErr").style.display="block";return;}
+  api("login",{username:u,password:p}).then(function(d){
+    if(d.status){
+      USER={username:d.username,role:d.role,saldo:d.saldo||0};
+      document.getElementById("loginPage").style.display="none";
+      document.getElementById("dashPage").style.display="block";
+      loadPrices();loadDashboard();updateSaldoUI();
+    }else{
+      document.getElementById("loginErr").style.display="block";
+    }
+  }).catch(function(e){
+    document.getElementById("loginErr").style.display="block";
+    document.getElementById("loginErr").textContent="Error: "+e.message;
+  });
+}
+
+function doLogout(){
+  USER=null;
+  document.getElementById("loginPage").style.display="flex";
+  document.getElementById("dashPage").style.display="none";
+  document.getElementById("username").value="";
+  document.getElementById("password").value="";
+  document.getElementById("loginErr").style.display="none";
+}
+
+function updateSaldoUI(){
+  if(!USER)return;
+  var s=fmtRp(USER.saldo||0);
+  document.getElementById("sSaldo").textContent=s;
+  document.getElementById("gSaldo").textContent=s;
+  document.getElementById("tSaldo").textContent=s;
+}
+
+function refreshSaldo(){
+  if(!USER)return;
+  api("get_profile",{username:USER.username}).then(function(d){
+    if(d.status){USER.saldo=d.saldo;updateSaldoUI();}
+  });
+}
+
+function loadPrices(){
+  api("get_prices",{}).then(function(d){
+    if(d.status){PRICES=d.prices;renderPriceGrid();}
+  });
+}
+
+function renderPriceGrid(){
+  var grid=document.getElementById("priceGrid");
+  var html="";var order=[1,3,7,20];
+  for(var i=0;i<order.length;i++){
+    var days=order[i];var price=PRICES[days];
+    var sel=days===SELECTED_DAYS?" selected":"";
+    html+='<div class="price-card'+sel+'" onclick="pickDays('+days+',this)">';
+    html+='<div class="days">'+days+'</div>';
+    html+='<div class="days-label">Hari</div>';
+    html+='<div class="price">'+fmtRp(price)+'</div>';
+    html+='</div>';
+  }
+  grid.innerHTML=html;
+}
+
+function pickDays(d,el){
+  SELECTED_DAYS=d;
+  document.querySelectorAll(".price-card").forEach(function(c){c.classList.remove("selected")});
+  if(el)el.classList.add("selected");
+}
+
+function loadDashboard(){
+  api("list_keys",{}).then(function(d){
+    if(!d.status)return;
+    var keys=d.data;var now=new Date();
+    var total=keys.length;
+    var active=keys.filter(function(k){return k.active}).length;
+    document.getElementById("sTotal").textContent=total;
+    document.getElementById("sActive").textContent=active;
+    document.getElementById("sInactive").textContent=total-active;
+    var html="";
+    var recent=keys.slice(-5).reverse();
+    for(var i=0;i<recent.length;i++){
+      var k=recent[i];
+      html+='<tr>';
+      html+='<td class="mono">'+k.key+'</td>';
+      html+='<td>'+k.title+'</td>';
+      html+='<td>'+k.days+' hari</td>';
+      html+='<td>'+(k.expired||'-')+'</td>';
+      html+='<td><span class="badge '+(k.active?'badge-on':'badge-off')+'">'+(k.active?'ACTIVE':'OFF')+'</span></td>';
+      html+='</tr>';
+    }
+    if(!html)html='<tr><td colspan="5" class="empty"><div class="emoji">🔑</div>Belum ada keys</td></tr>';
+    document.getElementById("dashTable").innerHTML=html;
+  });
+}
+
+function loadKeys(){
+  api("list_keys",{}).then(function(d){
+    if(!d.status)return;
+    var keys=d.data;
+    var html="";
+    for(var i=0;i<keys.length;i++){
+      var k=keys[i];
+      html+='<tr>';
+      html+='<td class="mono">'+k.key+'</td>';
+      html+='<td>'+k.title+'</td>';
+      html+='<td>'+k.days+'</td>';
+      html+='<td>'+fmtRp(k.price||0)+'</td>';
+      html+='<td>'+(k.created||'-')+'</td>';
+      html+='<td>'+(k.expired||'-')+'</td>';
+      html+='<td><span class="badge '+(k.active?'badge-on':'badge-off')+'">'+(k.active?'ACTIVE':'OFF')+'</span></td>';
+      html+='<td><div class="actions">';
+      html+='<button class="btn btn-sm btn-blue" onclick="toggleKey(\''+k.key+'\')">'+(k.active?'Disable':'Enable')+'</button>';
+      html+='<button class="btn btn-sm btn-red" onclick="deleteKey(\''+k.key+'\')">Hapus</button>';
+      html+='</div></td>';
+      html+='</tr>';
+    }
+    if(!html)html='<tr><td colspan="8" class="empty"><div class="emoji">🔑</div>Belum ada keys</td></tr>';
+    document.getElementById("keysTable").innerHTML=html;
+  });
+}
+
+function genKey(){
+  var title=document.getElementById("gTitle").value||"Credits:@kepental";
+  var customKey=document.getElementById("gCustomKey").value.trim();
+  var days=SELECTED_DAYS;
+
+  api("generate_key",{username:USER.username,title:title,custom_key:customKey,days:days}).then(function(d){
+    if(d.status){
+      // Update saldo
+      USER.saldo=d.saldo_baru;
+      updateSaldoUI();
+
+      // Show key result
+      document.getElementById("keyVal").textContent=d.key;
+      var price=PRICES[days]||(days*6500);
+      document.getElementById("keyInfo").textContent=d.data.title+" | "+days+" hari | "+fmtRp(price)+" | Expired: "+d.data.expired;
+      document.getElementById("keyResult").style.display="block";
+
+      // Show struk
+      if(d.struk){
+        document.getElementById("gsKey").textContent=d.struk.key;
+        document.getElementById("gsTitle").textContent=d.struk.title;
+        document.getElementById("gsPaket").textContent=d.struk.paket;
+        document.getElementById("gsHarga").textContent=fmtRp(d.struk.harga);
+        document.getElementById("gsTgl").textContent=d.struk.tanggal;
+        document.getElementById("gsExp").textContent=d.struk.expired;
+        document.getElementById("gsSaldo").textContent=fmtRp(d.saldo_baru);
+        document.getElementById("genStrukWrap").style.display="block";
+      }
+
+      toast("Key generated: "+d.key);
+    }else{
+      toast(d.message||"Error","var(--red)");
+    }
+  });
+}
+
+function copyKey(){
+  var key=document.getElementById("keyVal").textContent;
+  navigator.clipboard.writeText(key).then(function(){toast("Key copied!")});
+}
+
+function toggleKey(key){
+  api("toggle_key",{key:key}).then(function(d){
+    if(d.status){toast(d.message);loadKeys();loadDashboard();}
+  });
+}
+
+function deleteKey(key){
+  if(!confirm("Hapus key "+key+"?"))return;
+  api("delete_key",{key:key}).then(function(d){
+    if(d.status){toast(d.message);loadKeys();loadDashboard();}
+  });
+}
+
+function doTopup(){
+  var amt=parseInt(document.getElementById("topupAmt").value);
+  if(!amt||amt<1000){toast("Minimal Rp 1.000","var(--red)");return;}
+  api("topup",{username:USER.username,amount:amt}).then(function(d){
+    if(d.status){
+      USER.saldo=d.saldo_baru;
+      updateSaldoUI();
+      document.getElementById("topupAmt").value="";
+      toast("Topup berhasil! Saldo: "+fmtRp(d.saldo_baru));
+    }else{
+      toast(d.message||"Error","var(--red)");
+    }
+  });
+}
+
+document.getElementById("password").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin()});
+document.getElementById("username").addEventListener("keydown",function(e){if(e.key==="Enter")document.getElementById("password").focus()});
+</script>
+</body>
+</html>

@@ -1,7 +1,13 @@
 {
   "version": 2,
+  "name": "vercel-vexo",
   "routes": [
-    { "src": "/mlbb1", "dest": "/api/mlbb1.js" },
-    { "src": "/(.*)", "dest": "/api/mlbb1.js" }
+    { "src": "/api/admin(.*)", "dest": "/api/admin.js" },
+    { "src": "^/mlbb1$", "dest": "/api/mlbb1.js" },
+    { "src": "^/mlLBB$", "dest": "/api/mlbb1.js" },
+    { "src": "^/MLBB$", "dest": "/api/mlbb1.js" },
+    { "src": "^/mlbb(\\d+)$", "dest": "/api/mlbb1.js" },
+    { "src": "^/MLBB(\\d+)$", "dest": "/api/mlbb1.js" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

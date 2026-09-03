@@ -39,19 +39,19 @@ function saveDB(db) {
   } catch (e) {}
 }
 
-function genRandomKey() {
+// Format: ML-{days}DAY-RANDOM4
+function genRandomKey(days) {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let key = "ML_random";
-  for (let i = 0; i < 8; i++) {
-    key += chars[Math.floor(Math.random() * chars.length)];
+  let rand = "";
+  for (let i = 0; i < 4; i++) {
+    rand += chars[Math.floor(Math.random() * chars.length)];
   }
-  return key;
+  return "ML-" + days + "DAY-" + rand;
 }
 
 function fmtDate(d) {
   function p(n) { return String(n).padStart(2, "0"); }
-  const m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  return p(d.getDate()) + "-" + m[d.getMonth()] + "-" + d.getFullYear();
+  return d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate());
 }
 
 function fmtDateTime(d) {
@@ -60,10 +60,4 @@ function fmtDateTime(d) {
     p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
 }
 
-function fmtExp(d) {
-  function p(n) { return String(n).padStart(2, "0"); }
-  return d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate()) + " " +
-    p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
-}
-
-module.exports = { loadDB, saveDB, genRandomKey, fmtDate, fmtDateTime, fmtExp, DEFAULT_DB };
+module.exports = { loadDB, saveDB, genRandomKey, fmtDate, fmtDateTime, DEFAULT_DB };

@@ -1,4 +1,4 @@
-const { loadDB, saveDB, genRandomKey, fmtDate, fmtDateTime, fmtExp } = require("./db");
+const { loadDB, saveDB, genRandomKey, fmtDate, fmtDateTime } = require("./db");
 
 module.exports = (req, res) => {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -11,31 +11,24 @@ module.exports = (req, res) => {
   let body = "";
   req.on("data", chunk => { body += chunk; });
   req.on("end", () => {
-    // Parse URL and action
     let action = "";
     try {
       const urlObj = new URL(req.url, "http://localhost");
       action = urlObj.searchParams.get("action") || "";
     } catch (e) {
-      // fallback: extract from raw url
       const match = req.url.match(/action=([^&]+)/);
       if (match) action = match[1];
     }
 
-    // Parse body as JSON or URL-encoded
     let params = {};
     if (body) {
-      try {
-        params = JSON.parse(body);
-      } catch (e) {
+      try { params = JSON.parse(body); }
+      catch (e) {
         body.split("&").forEach(p => {
           const parts = p.split("=");
           if (parts[0]) {
-            try {
-              params[parts[0]] = decodeURIComponent(parts[1] || "");
-            } catch (e2) {
-              params[parts[0]] = parts[1] || "";
-            }
+            try { params[parts[0]] = decodeURIComponent(parts[1] || ""); }
+            catch (e2) { params[parts[0]] = parts[1] || ""; }
           }
         });
       }
@@ -43,39 +36,33 @@ module.exports = (req, res) => {
 
     const db = loadDB();
 
-    // === LOGIN ===
+    // LOGIN
     if (action === "login") {
       const user = db.users[params.username];
       if (user && user.password === params.password) {
         return res.status(200).json({
-          status: true,
-          message: "Login success",
-          username: params.username,
-          role: user.role,
-          saldo: user.saldo || 0
+          status: true, message: "Login success",
+          username: params.username, role: user.role, saldo: user.saldo || 0
         });
       }
       return res.status(200).json({ status: false, message: "Wrong credentials" });
     }
 
-    // === GET PROFILE ===
+    // GET PROFILE
     if (action === "get_profile") {
       const user = db.users[params.username];
       if (!user) return res.status(200).json({ status: false });
       return res.status(200).json({
-        status: true,
-        username: params.username,
-        role: user.role,
-        saldo: user.saldo || 0
+        status: true, username: params.username, role: user.role, saldo: user.saldo || 0
       });
     }
 
-    // === GET PRICES ===
+    // GET PRICES
     if (action === "get_prices") {
       return res.status(200).json({ status: true, prices: db.prices });
     }
 
-    // === TOPUP ===
+    // TOPUP
     if (action === "topup") {
       const user = db.users[params.username];
       if (!user) return res.status(200).json({ status: false, message: "User not found" });
@@ -86,28 +73,26 @@ module.exports = (req, res) => {
       return res.status(200).json({ status: true, saldo_baru: user.saldo, message: "Topup berhasil!" });
     }
 
-    // === LIST KEYS ===
+    // LIST KEYS
     if (action === "list_keys") {
       const now = new Date();
       const keys = Object.entries(db.keys).map(([key, val]) => {
         const expDate = new Date(val.expired + "T23:59:59");
         const active = val.active && now <= expDate;
         return {
-          key,
-          title: val.title,
-          device: val.device || "default",
-          days: val.days,
-          price: val.price || 0,
-          created: val.created,
-          expired: val.expired,
-          active,
-          owner: val.owner
+          key, title: val.title, device: val.device || "default",
+          days: val.days, price: val.price || 0,
+          created: val.created, expired: val.expired,
+          max_device: val.max_device || 1,
+          connected_device: (val.devices || []).length,
+          devices: val.devices || [],
+          active, owner: val.owner
         };
       });
       return res.status(200).json({ status: true, data: keys });
     }
 
-    // === GENERATE KEY ===
+    // GENERATE KEY
     if (action === "generate_key") {
       const user = db.users[params.username];
       if (!user) return res.status(200).json({ status: false, message: "User not found" });
@@ -115,8 +100,8 @@ module.exports = (req, res) => {
       const title = params.title || "Credits:@kepental";
       const days = parseInt(params.days) || 1;
       const customKey = (params.custom_key || "").trim();
+      const maxDevice = parseInt(params.max_device) || 1;
 
-      // Check saldo
       const price = db.prices[days] || (days * 6500);
       if ((user.saldo || 0) < price) {
         return res.status(200).json({
@@ -125,83 +110,70 @@ module.exports = (req, res) => {
         });
       }
 
-      // Generate or use custom key
       let newKey;
       if (customKey) {
-        // Check if custom key already exists
         if (db.keys[customKey]) {
           return res.status(200).json({ status: false, message: "Key sudah ada!" });
         }
         newKey = customKey;
       } else {
-        newKey = genRandomKey();
-        // Make sure key is unique
-        while (db.keys[newKey]) {
-          newKey = genRandomKey();
-        }
+        // Format: ML-{days}DAY-RANDOM4
+        newKey = genRandomKey(days);
+        while (db.keys[newKey]) newKey = genRandomKey(days);
       }
 
       const now = new Date();
       const exp = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
 
       db.keys[newKey] = {
-        title,
-        active: true,
-        device: "default",
-        created: fmtDateTime(now),
-        expired: fmtDate(exp),
-        days,
-        price,
-        owner: params.username
+        title, active: true, device: "default",
+        custom_key: customKey,
+        created: fmtDateTime(now), expired: fmtDate(exp),
+        days, price, owner: params.username,
+        max_device: maxDevice, devices: []
       };
 
-      // Deduct saldo
       user.saldo = (user.saldo || 0) - price;
       saveDB(db);
 
-      // Return with struk data
       return res.status(200).json({
-        status: true,
-        key: newKey,
-        data: db.keys[newKey],
-        saldo_baru: user.saldo,
-        struk: {
-          key: newKey,
-          title: title,
-          paket: days + " Hari",
-          harga: price,
-          tanggal: fmtDateTime(now),
-          expired: fmtDate(exp)
-        },
+        status: true, key: newKey, data: db.keys[newKey], saldo_baru: user.saldo,
+        struk: { key: newKey, title, paket: days + " Hari", harga: price,
+          tanggal: fmtDateTime(now), expired: fmtDate(exp), max_device: maxDevice },
         message: "Key generated!"
       });
     }
 
-    // === DELETE KEY ===
+    // UPDATE KEY
+    if (action === "update_key") {
+      const key = params.key || "";
+      if (!db.keys[key]) {
+        return res.status(200).json({ status: false, message: "Key not found" });
+      }
+      if (params.max_device !== undefined) db.keys[key].max_device = parseInt(params.max_device) || 1;
+      if (params.title !== undefined) db.keys[key].title = params.title;
+      if (params.reset_devices === "true") db.keys[key].devices = [];
+      saveDB(db);
+      return res.status(200).json({ status: true, key, data: db.keys[key], message: "Key updated!" });
+    }
+
+    // DELETE KEY
     if (action === "delete_key") {
       const key = params.key || "";
       if (!db.keys[key]) {
         return res.status(200).json({ status: false, message: "Key not found" });
       }
-
       const keyData = db.keys[key];
       const refund = Math.floor((keyData.price || 0) * 0.5);
-
-      // Refund to owner
       if (keyData.owner && db.users[keyData.owner]) {
         db.users[keyData.owner].saldo = (db.users[keyData.owner].saldo || 0) + refund;
       }
-
       delete db.keys[key];
       saveDB(db);
-
-      return res.status(200).json({
-        status: true,
-        message: "Key deleted! Refund: Rp " + refund.toLocaleString("id-ID")
-      });
+      return res.status(200).json({ status: true, message: "Key deleted! Refund: Rp " + refund.toLocaleString("id-ID") });
     }
 
-    // === TOGGLE KEY ===
+    // TOGGLE KEY
     if (action === "toggle_key") {
       const key = params.key || "";
       if (!db.keys[key]) {
@@ -210,14 +182,12 @@ module.exports = (req, res) => {
       db.keys[key].active = !db.keys[key].active;
       saveDB(db);
       return res.status(200).json({
-        status: true,
-        key: key,
-        active: db.keys[key].active,
+        status: true, key, active: db.keys[key].active,
         message: db.keys[key].active ? "Key activated" : "Key deactivated"
       });
     }
 
-    // === STATS ===
+    // STATS
     if (action === "stats") {
       const keys = Object.values(db.keys);
       const now = new Date();
@@ -226,13 +196,7 @@ module.exports = (req, res) => {
         const exp = new Date(k.expired + "T23:59:59");
         return k.active && now <= exp;
       }).length;
-
-      return res.status(200).json({
-        status: true,
-        total,
-        active,
-        inactive: total - active
-      });
+      return res.status(200).json({ status: true, total, active, inactive: total - active });
     }
 
     return res.status(200).json({ status: false, message: "Unknown action" });

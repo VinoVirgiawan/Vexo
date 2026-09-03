@@ -185,6 +185,7 @@
       <button class="nav-item" onclick="go(this,'keys')"><span class="emoji">📋</span> Semua Keys</button>
       <button class="nav-item" onclick="go(this,'struk')"><span class="emoji">🧾</span> Struk & Harga</button>
       <button class="nav-item" onclick="go(this,'topup')"><span class="emoji">💰</span> Topup Saldo</button>
+      <button class="nav-item" onclick="go(this,'settings')"><span class="emoji">⚙️</span> Settings</button>
     </div>
     <div class="sidebar-footer">
       <div class="user">
@@ -324,6 +325,24 @@
       </div>
     </div>
 
+    <!-- SETTINGS -->
+    <div id="p-settings" class="panel">
+      <div class="page-header">
+        <div><div class="breadcrumb">Config</div><h2>Settings</h2></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Device Limit</h3><span class="tag">config.json</span></div>
+        <div class="form-row">
+          <div class="field">
+            <label>Max Device per Key</label>
+            <input type="number" id="cfgMaxDevice" value="999" min="1" max="9999">
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text3);margin-bottom:16px">Berapa device yang boleh login bareng 1 key. Ubah sesuai kebutuhan.</p>
+        <button class="btn btn-green" onclick="saveConfig()" style="width:100%">💾 Simpan Settings</button>
+      </div>
+    </div>
+
     <!-- TOPUP -->
     <div id="p-topup" class="panel">
       <div class="page-header">
@@ -376,6 +395,7 @@ function go(el,id){
   if(id==="keys")loadKeys();
   if(id==="generate"){loadPrices();refreshSaldo();}
   if(id==="topup")refreshSaldo();
+  if(id==="settings")loadConfig();
 }
 
 function api(action,data){
@@ -561,6 +581,23 @@ function deleteKey(key){
   if(!confirm("Hapus key "+key+"?"))return;
   api("delete_key",{key:key}).then(function(d){
     if(d.status){toast(d.message);loadKeys();loadDashboard();}
+  });
+}
+
+function loadConfig(){
+  api("get_config",{}).then(function(d){
+    if(d.status&&d.config){
+      document.getElementById("cfgMaxDevice").value=d.config.max_device||999;
+    }
+  });
+}
+
+function saveConfig(){
+  var maxDev=parseInt(document.getElementById("cfgMaxDevice").value)||999;
+  api("update_config",{max_device:maxDev}).then(function(d){
+    if(d.status){
+      toast("Settings saved! Max Device: "+maxDev);
+    }
   });
 }
 
